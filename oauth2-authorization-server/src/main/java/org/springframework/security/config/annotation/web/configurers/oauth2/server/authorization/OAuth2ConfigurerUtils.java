@@ -26,6 +26,7 @@ import org.springframework.beans.factory.NoUniqueBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.ResolvableType;
 import org.springframework.security.config.annotation.web.HttpSecurityBuilder;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwsEncoder;
 import org.springframework.security.oauth2.server.authorization.InMemoryOAuth2AuthorizationConsentService;
@@ -36,6 +37,7 @@ import org.springframework.security.oauth2.server.authorization.OAuth2Authorizat
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenCustomizer;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.config.ProviderSettings;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.util.StringUtils;
 
 /**
@@ -93,6 +95,18 @@ final class OAuth2ConfigurerUtils {
 			builder.setSharedObject(JwtEncoder.class, jwtEncoder);
 		}
 		return jwtEncoder;
+	}
+
+	static <B extends HttpSecurityBuilder<B>> UserDetailsService getUserDetailsService(B builder) {
+		UserDetailsService userDetailsService = builder.getSharedObject(UserDetailsService.class);
+		if (userDetailsService == null) {
+			userDetailsService = getOptionalBean(builder, UserDetailsService.class);
+			if (userDetailsService == null) {
+				userDetailsService = new InMemoryUserDetailsManager();
+			}
+			builder.setSharedObject(UserDetailsService.class, userDetailsService);
+		}
+		return userDetailsService;
 	}
 
 	@SuppressWarnings("unchecked")

@@ -37,10 +37,11 @@ public class DefaultSecurityConfig {
 	@Bean
 	SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
 		http
-			.authorizeRequests(authorizeRequests ->
-				authorizeRequests.anyRequest().authenticated()
-			)
-			.formLogin(withDefaults());
+				.authorizeRequests(authorizeRequests ->
+								// authorizeRequests.antMatchers("/oauth/token/**").permitAll()
+						authorizeRequests.anyRequest().authenticated()
+						// authorizeRequests.anyRequest().permitAll()
+				).formLogin(withDefaults());
 		return http.build();
 	}
 	// @formatter:on

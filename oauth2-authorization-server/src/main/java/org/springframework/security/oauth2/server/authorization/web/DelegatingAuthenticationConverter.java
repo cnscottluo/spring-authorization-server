@@ -38,6 +38,7 @@ import java.util.Objects;
  * @since 0.0.2
  * @see AuthenticationConverter
  */
+// 执行多个转换
 public final class DelegatingAuthenticationConverter implements AuthenticationConverter {
 	private final List<AuthenticationConverter> converters;
 
@@ -51,6 +52,9 @@ public final class DelegatingAuthenticationConverter implements AuthenticationCo
 		this.converters = Collections.unmodifiableList(new LinkedList<>(converters));
 	}
 
+	/**
+	 * 顺序执行转换器，然后取第一个转换成功的
+	 */
 	@Nullable
 	@Override
 	public Authentication convert(HttpServletRequest request) {

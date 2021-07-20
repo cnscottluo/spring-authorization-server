@@ -36,6 +36,9 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.Assert;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+
+
+
 /**
  * A {@code Filter} that processes JWK Set requests.
  *
@@ -45,6 +48,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * @see <a target="_blank" href="https://tools.ietf.org/html/rfc7517">JSON Web Key (JWK)</a>
  * @see <a target="_blank" href="https://tools.ietf.org/html/rfc7517#section-5">Section 5 JWK Set Format</a>
  */
+// JWT SET 端点
 public class NimbusJwkSetEndpointFilter extends OncePerRequestFilter {
 	/**
 	 * The default endpoint {@code URI} for JWK Set requests.
@@ -74,6 +78,7 @@ public class NimbusJwkSetEndpointFilter extends OncePerRequestFilter {
 		Assert.hasText(jwkSetEndpointUri, "jwkSetEndpointUri cannot be empty");
 		this.jwkSource = jwkSource;
 		this.jwkSelector = new JWKSelector(new JWKMatcher.Builder().build());
+		// 匹配 /oauth2/jwks 进行拦截
 		this.requestMatcher = new AntPathRequestMatcher(jwkSetEndpointUri, HttpMethod.GET.name());
 	}
 
@@ -81,6 +86,7 @@ public class NimbusJwkSetEndpointFilter extends OncePerRequestFilter {
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
 			throws ServletException, IOException {
 
+		// 如果不是访问 /oauth2/jwks 则放行
 		if (!this.requestMatcher.matches(request)) {
 			filterChain.doFilter(request, response);
 			return;
@@ -88,14 +94,18 @@ public class NimbusJwkSetEndpointFilter extends OncePerRequestFilter {
 
 		JWKSet jwkSet;
 		try {
+			// 创建 JWKSet
 			jwkSet = new JWKSet(this.jwkSource.get(this.jwkSelector, null));
 		}
 		catch (Exception ex) {
 			throw new IllegalStateException("Failed to select the JWK(s) -> " + ex.getMessage(), ex);
 		}
 
+		// 设置响应为 JSON
 		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+		// 获取Writer
 		try (Writer writer = response.getWriter()) {
+			// 写出JWKSet
 			writer.write(jwkSet.toString());	// toString() excludes private keys
 		}
 	}

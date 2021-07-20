@@ -50,6 +50,7 @@ import org.springframework.security.oauth2.server.authorization.authentication.O
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2RefreshTokenAuthenticationProvider;
 import org.springframework.security.oauth2.server.authorization.web.authentication.OAuth2AuthorizationCodeAuthenticationConverter;
 import org.springframework.security.oauth2.server.authorization.web.authentication.OAuth2ClientCredentialsAuthenticationConverter;
+import org.springframework.security.oauth2.server.authorization.web.authentication.OAuth2PasswordAuthenticationConverter;
 import org.springframework.security.oauth2.server.authorization.web.authentication.OAuth2RefreshTokenAuthenticationConverter;
 import org.springframework.security.web.authentication.AuthenticationConverter;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
@@ -90,6 +91,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * @see OAuth2ClientCredentialsAuthenticationProvider
  * @see <a target="_blank" href="https://tools.ietf.org/html/rfc6749#section-3.2">Section 3.2 Token Endpoint</a>
  */
+// Token端点
 public class OAuth2TokenEndpointFilter extends OncePerRequestFilter {
 	/**
 	 * The default endpoint {@code URI} for access token requests.
@@ -128,29 +130,35 @@ public class OAuth2TokenEndpointFilter extends OncePerRequestFilter {
 		Assert.notNull(authenticationManager, "authenticationManager cannot be null");
 		Assert.hasText(tokenEndpointUri, "tokenEndpointUri cannot be empty");
 		this.authenticationManager = authenticationManager;
+		// 匹配 /oauth2/token POST请求
 		this.tokenEndpointMatcher = new AntPathRequestMatcher(tokenEndpointUri, HttpMethod.POST.name());
+		// 讲 Http 请求转为 Authentication
 		this.authenticationConverter = new DelegatingAuthenticationConverter(
 				Arrays.asList(
 						new OAuth2AuthorizationCodeAuthenticationConverter(),
 						new OAuth2RefreshTokenAuthenticationConverter(),
-						new OAuth2ClientCredentialsAuthenticationConverter()));
+						new OAuth2ClientCredentialsAuthenticationConverter(),
+						new OAuth2PasswordAuthenticationConverter()));
 	}
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
 			throws ServletException, IOException {
 
+		// 不是 /oauth2/token 请求，则放行
 		if (!this.tokenEndpointMatcher.matches(request)) {
 			filterChain.doFilter(request, response);
 			return;
 		}
 
 		try {
+			// 获取模式类型
 			String[] grantTypes = request.getParameterValues(OAuth2ParameterNames.GRANT_TYPE);
 			if (grantTypes == null || grantTypes.length != 1) {
 				throwError(OAuth2ErrorCodes.INVALID_REQUEST, OAuth2ParameterNames.GRANT_TYPE);
 			}
 
+			// 将 请求转为 Authentication
 			Authentication authorizationGrantAuthentication = this.authenticationConverter.convert(request);
 			if (authorizationGrantAuthentication == null) {
 				throwError(OAuth2ErrorCodes.UNSUPPORTED_GRANT_TYPE, OAuth2ParameterNames.GRANT_TYPE);
